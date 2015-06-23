@@ -63,8 +63,6 @@ public class ForecastFragment extends Fragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.forcast_menu, menu);
-
-        menu.findItem(R.id.action_location).setEnabled(isLocationIntentAvailable());
     }
 
     @Override
@@ -78,9 +76,6 @@ public class ForecastFragment extends Fragment {
                 return true;
             case R.id.action_settings:
                 settings();
-                return true;
-            case R.id.action_location:
-                configureLocation();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -98,17 +93,7 @@ public class ForecastFragment extends Fragment {
         return location;
     }
 
-    protected boolean isLocationIntentAvailable() {
-        return getLocationIntent().resolveActivity(getActivity().getPackageManager()) != null;
-    }
-
-    protected void configureLocation() {
-        if (isLocationIntentAvailable()) {
-            startActivityForResult(getLocationIntent(), 1);
-        }
-    }
-
-    protected String getLocationPreference() {
+     protected String getLocationPreference() {
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getActivity());
         return settings.getString(
                 getString(R.string.pref_location_key),
