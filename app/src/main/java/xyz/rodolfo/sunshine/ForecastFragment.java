@@ -5,8 +5,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Parcel;
 import android.preference.Preference;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
@@ -61,6 +63,8 @@ public class ForecastFragment extends Fragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.forcast_menu, menu);
+
+        menu.findItem(R.id.action_location).setEnabled(isLocationIntentAvailable());
     }
 
     @Override
@@ -75,6 +79,9 @@ public class ForecastFragment extends Fragment {
             case R.id.action_settings:
                 settings();
                 return true;
+            case R.id.action_location:
+                configureLocation();
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -84,6 +91,31 @@ public class ForecastFragment extends Fragment {
         startActivity(settings);
     }
 
+    protected Intent getLocationIntent() {
+        Intent location = new Intent(Intent.ACTION_VIEW);
+        location.setData(Uri.parse("geo:0,0?q=" + getLocationPreference()));
+
+        return location;
+    }
+
+    protected boolean isLocationIntentAvailable() {
+        return getLocationIntent().resolveActivity(getActivity().getPackageManager()) != null;
+    }
+
+    protected void configureLocation() {
+        if (isLocationIntentAvailable()) {
+            startActivityForResult(getLocationIntent(), 1);
+        }
+    }
+
+    protected String getLocationPreference() {
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        return settings.getString(
+                getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default)
+        );
+    }
+
     protected void refresh() {
         ForecastFetcherTask d = new ForecastFetcherTask() {
             protected void onPostExecute(String[] result) {
@@ -91,11 +123,7 @@ public class ForecastFragment extends Fragment {
                 forecastAdapter.addAll(result);
             }
         };
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String postCode = settings.getString(
-                getString(R.string.pref_location_key),
-                getString(R.string.pref_location_default)
-        );
+        String postCode = getLocationPreference();
         // Toast.makeText(getActivity(), postCode, Toast.LENGTH_LONG).show();
         d.execute(postCode);
     }
