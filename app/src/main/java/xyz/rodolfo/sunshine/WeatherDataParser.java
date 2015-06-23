@@ -1,5 +1,9 @@
 package xyz.rodolfo.sunshine;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+import android.support.v4.app.FragmentActivity;
 import android.text.format.Time;
 import android.util.Log;
 
@@ -12,24 +16,47 @@ import java.text.SimpleDateFormat;
 public class WeatherDataParser {
 
     private static final String LOG_TAG = WeatherDataParser.class.getSimpleName();
+    private Context context;
+
+    public WeatherDataParser(Context context) {
+        this.context = context;
+    }
 
     /* The date/time conversion code is going to be moved outside the asynctask later,
      * so for convenience we're breaking it out into its own method now.
      */
-    public static String getReadableDateString(long time){
+    protected static String getReadableDateString(long time){
         // Because the API returns a unix timestamp (measured in seconds),
         // it must be converted to milliseconds in order to be converted to valid date.
         SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE MMM dd");
         return shortenedDateFormat.format(time);
     }
 
+    protected String getUnit(){
+
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
+        return settings.getString(
+                context.getString(R.string.pref_unit_key),
+                context.getString(R.string.pref_unit_value_metric)
+        );
+    }
+
+    protected double convertToUnit(double temperature, String unit)
+    {
+        if (unit.equals(context.getString(R.string.pref_unit_value_imperial))) {
+            return (temperature * 1.8) + 32;
+        }
+
+        return temperature;
+    }
     /**
      * Prepare the weather high/lows for presentation.
      */
-    public static String formatHighLows(double high, double low) {
+    protected String formatHighLows(double high, double low) {
+        String unit = getUnit();
         // For presentation, assume the user doesn't care about tenths of a degree.
-        long roundedHigh = Math.round(high);
-        long roundedLow = Math.round(low);
+        long roundedHigh = Math.round(convertToUnit(high, unit));
+        long roundedLow = Math.round(convertToUnit(low, unit));
 
         String highLowStr = roundedHigh + "/" + roundedLow;
         return highLowStr;
@@ -42,7 +69,7 @@ public class WeatherDataParser {
      * Fortunately parsing is easy:  constructor takes the JSON string and converts it
      * into an Object hierarchy for us.
      */
-    public static String[] getWeatherDataFromJson(String forecastJsonStr, int numDays)
+    public String[] getWeatherDataFromJson(String forecastJsonStr, int numDays)
             throws JSONException {
 
         // These are the names of the JSON objects that need to be extracted.

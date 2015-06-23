@@ -1,7 +1,12 @@
 package xyz.rodolfo.sunshine;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.preference.Preference;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
@@ -11,8 +16,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONException;
 
@@ -33,7 +40,6 @@ import java.util.List;
  */
 public class ForecastFragment extends Fragment {
     protected static String TAG = ForecastFragment.class.getSimpleName();
-    protected String postCode = "94043";
     protected ArrayAdapter<String> forecastAdapter;
 
     public ForecastFragment() {
@@ -43,6 +49,12 @@ public class ForecastFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onStart(){
+        super.onStart();
+        refresh();
     }
 
     @Override
@@ -56,11 +68,20 @@ public class ForecastFragment extends Fragment {
         int id = item.getItemId();
         Log.d(TAG, "Item selected: " + Integer.toString(id));
 
-        if (id == R.id.action_refresh) {
-            refresh();
-            return true;
+        switch (id) {
+            case R.id.action_refresh:
+                refresh();
+                return true;
+            case R.id.action_settings:
+                settings();
+                return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    protected void settings() {
+        Intent settings = new Intent(getActivity(), SettingsActivity.class);
+        startActivity(settings);
     }
 
     protected void refresh() {
@@ -70,6 +91,12 @@ public class ForecastFragment extends Fragment {
                 forecastAdapter.addAll(result);
             }
         };
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String postCode = settings.getString(
+                getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default)
+        );
+        // Toast.makeText(getActivity(), postCode, Toast.LENGTH_LONG).show();
         d.execute(postCode);
     }
 
@@ -88,6 +115,17 @@ public class ForecastFragment extends Fragment {
 
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forecast);
         listView.setAdapter(forecastAdapter);
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String item = forecastAdapter.getItem(position);
+                Intent viewDetails = new Intent(getActivity(), DetailForecastActivity.class);
+                viewDetails.putExtra(Intent.EXTRA_TEXT, item);
+                startActivity(viewDetails);
+                // Toast.makeText(getActivity(), item, Toast.LENGTH_LONG).show();
+            }
+        });
 
         return rootView;
     }
@@ -175,7 +213,7 @@ public class ForecastFragment extends Fragment {
             }
 
             try {
-                return WeatherDataParser.getWeatherDataFromJson(forecastJsonStr, daysToLoad);
+                return (new WeatherDataParser(getActivity())).getWeatherDataFromJson(forecastJsonStr, daysToLoad);
             } catch (JSONException e) {
                 Log.e(TAG, "Error parsing json", e.getCause());
                 return null;
