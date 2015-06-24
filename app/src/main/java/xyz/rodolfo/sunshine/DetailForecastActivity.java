@@ -18,11 +18,4 @@ public class DetailForecastActivity extends ActionBarActivity {
         setContentView(R.layout.activity_detail_forecast);
     }
 
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_detail_forecast, menu);
-        return true;
-    }
 }
